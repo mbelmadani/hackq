@@ -1,8 +1,8 @@
 #!/bin/bash
 set -eu
 
+MODE="s|DONTCHANGEATHINGYOUBEATIFULPERSON||g"
 if [ $# -gt 1 ]; then
-    MODE="s|DONTCHANGEATHINGYOUBEATIFULPERSON||g"
     if [ "$1" == "q" ]; then
 	MODE='s|\?.*||g'
 	echo "MODE SET: $MODE"
