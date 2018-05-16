@@ -13,7 +13,7 @@ if [ $# -lt 2 ]; then
     echo "USING NEW UUID"
     uuid=$(uuidgen)
     shutter -w Cast -o image.$uuid.raw.png -e
-    convert image.$uuid.raw.png -crop 900x500+200+210 image.$uuid.cropped.png
+    convert image.$uuid.raw.png -crop 900x500+200+300 image.$uuid.cropped.png
 else
     echo "USING INPUT UUID"
     uuid=$2
