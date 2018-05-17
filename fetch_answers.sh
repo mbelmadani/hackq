@@ -53,6 +53,6 @@ cat out/answer.txt \
     | grep -P ".*.{3,}.*" \
     | sort \
     | uniq -c \
-    | sort -k1gr > $QUESTIONFILE
+    | sort -k1g > $QUESTIONFILE
 
 grep -i -f $ANSWERFILE $QUESTIONFILE
