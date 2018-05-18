@@ -1,58 +1,52 @@
 #!/bin/bash
 set -eu
+echo "=======================NEW QUESTION==========================="
 
-MODE="s|DONTCHANGEATHINGYOUBEATIFULPERSON||g"
-if [ $# -gt 1 ]; then
-    if [ "$1" == "q" ]; then
-	MODE='s|\?.*||g'
-	echo "MODE SET: $MODE"
-    fi
+export SEDMODE='s|SOMETHINGTHATCANTPOSSIBLYBEMATCHED||g'
+
+if [ ! -z ${MODE+x} ] && [ "$MODE" == "q" ]; then
+    export SEDMODE='s|\?.*||g'	
 fi
     
-if [ $# -lt 2 ]; then
+if [ -z ${UUID+x} ]; then
     echo "USING NEW UUID"
     uuid=$(uuidgen)
     shutter -w Cast -o image.$uuid.raw.png -e
-    convert image.$uuid.raw.png -crop 900x500+200+300 image.$uuid.cropped.png
+   
 else
     echo "USING INPUT UUID"
-    uuid=$2
+    uuid=$UUID
 fi
 
+convert image.$uuid.raw.png -crop 900x500+200+300 image.$uuid.cropped.png
 convert image.$uuid.cropped.png -threshold 75% png:- | tesseract - out/answer -l eng 2> /dev/null
-ANSWERS=$(cat out/answer.txt \
-		 | grep -v "^$" \
-		 | sed '/^\s*$/d' \
-		 | sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/_/g' \
-		 | sed -e "s|.*?||g" \
-		 | tr " " "|" \
-		 | tr "_" "|" \
-		 | sed "s/^|//g" )
-echo $ANSWERS
+
+TEXT=$(cat out/answer.txt \
+	      | grep -v "^$" \
+	      | sed '/^\s*$/d' \
+	      | sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/|/g' \
+	      | sed "s/^|//g" \
+              | tr '[:upper:]' '[:lower:]' )
+
+export ANSWERS=$(echo $TEXT | cut --complement -f1 -d"?")
+export QUESTION=$(echo $TEXT | sed -e "s|?.*|?|g" | sed 's/|//g' )
+echo "QUESTION $QUESTION"
+echo "ANSWERS $ANSWERS"
 
 IFS="|"
-QUESTIONFILE="questions.$uuid.txt"
-ANSWERFILE="answers.$uuid.txt"
+export QUESTIONFILE="questions.$uuid.txt"
+export ANSWERFILE="answers.$uuid.txt"
 rm -f $ANSWERFILE
 for a in $ANSWERS; do
+    # Saving this for analysis
     echo $a >> $ANSWERFILE
 done
 unset IFS
-#exit
 
-cat out/answer.txt \
-    | grep -v "^$" \
-    | sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/ /g' \
-    | sed $MODE  \
-    | googler -C 2> /dev/null  \
-    | tr " " "\n" \
-    | tr "," "\n" \
-    | tr "." "\n" \
-    | tr "'" "\n" \
-    | tr '[:upper:]' '[:lower:]' \
-    | grep -P ".*.{3,}.*" \
+echo $ANSWERS \
+    | tr "|" "\n" \
+    | xargs -P3 -I@ ./textfile_to_google.sh @ \
     | sort \
     | uniq -c \
-    | sort -k1g > $QUESTIONFILE
-
-grep -i -f $ANSWERFILE $QUESTIONFILE
+    | sort -k1g \
+    | xargs -P3 -I @ python filterhit.py "@" $ANSWERS
