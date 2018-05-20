@@ -10,12 +10,12 @@ fi
     
 if [ -z ${UUID+x} ]; then
     echo "USING NEW UUID"
-    uuid=$(uuidgen)
+    export uuid=$(uuidgen)
     shutter -w Cast -o image.$uuid.raw.png -e
    
 else
     echo "USING INPUT UUID"
-    uuid=$UUID
+    export uuid=$UUID
 fi
 
 convert image.$uuid.raw.png -crop 900x500+200+300 image.$uuid.cropped.png
@@ -33,8 +33,11 @@ export QUESTION=$(echo $TEXT | sed -e "s|?.*|?|g" | sed 's/|//g' )
 echo "QUESTION $QUESTION"
 echo "ANSWERS $ANSWERS"
 
+
 IFS="|"
 export QUESTIONFILE="questions.$uuid.txt"
+echo $QUESTION > $QUESTIONFILE
+
 export ANSWERFILE="answers.$uuid.txt"
 rm -f $ANSWERFILE
 for a in $ANSWERS; do
@@ -43,10 +46,25 @@ for a in $ANSWERS; do
 done
 unset IFS
 
+echo "GOOGLE:"
 echo $ANSWERS \
     | tr "|" "\n" \
     | xargs -P3 -I@ ./textfile_to_google.sh @ \
     | sort \
+    | xargs -I@ grep -i @ --only-matching $ANSWERFILE \
+    | sort \
     | uniq -c \
-    | sort -k1g \
-    | xargs -P3 -I @ python filterhit.py "@" $ANSWERS
+    | sort -k1g
+
+    #| xargs -P3 -I @ python filterhit.py "@" $ANSWERS
+
+    
+
+echo "WIKI:"
+echo $ANSWERS \
+    | tr "|" "\n" \
+    | xargs -P3 -I@ ./query_wikipedia.sh @ "$QUESTION" \
+    | xargs -I@  grep -i @ --only-matching $ANSWERFILE \
+    | sort \
+    | uniq -c \
+    | sort -k1g 	 
