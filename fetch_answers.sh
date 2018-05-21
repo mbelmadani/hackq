@@ -1,5 +1,7 @@
 #!/bin/bash
 set -eu
+source colour_codes.sh
+
 echo "=======================NEW QUESTION==========================="
 
 export SEDMODE='s|SOMETHINGTHATCANTPOSSIBLYBEMATCHED||g'
@@ -18,21 +20,20 @@ else
     export uuid=$UUID
 fi
 
-convert image.$uuid.raw.png -crop 900x500+200+300 image.$uuid.cropped.png
-convert image.$uuid.cropped.png -threshold 75% png:- | tesseract - out/answer -l eng 2> /dev/null
+export PARSEDTEXT="parsed.$uuid"
+./process_image.sh
 
-TEXT=$(cat out/answer.txt \
+TEXT=$(cat $PARSEDTEXT".txt" \
 	      | grep -v "^$" \
+	      | tr "\n" "|" \
 	      | sed '/^\s*$/d' \
 	      | sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/|/g' \
-	      | sed "s/^|//g" \
               | tr '[:upper:]' '[:lower:]' )
 
-export ANSWERS=$(echo $TEXT | cut --complement -f1 -d"?")
-export QUESTION=$(echo $TEXT | sed -e "s|?.*|?|g" | sed 's/|//g' )
+export ANSWERS=$(echo $TEXT | cut --complement -f1 -d"?" )
+export QUESTION=$(echo $TEXT | sed -e "s|?.*|?|g" | sed 's/|//g' | sed "s/^|//g")
 echo "QUESTION $QUESTION"
 echo "ANSWERS $ANSWERS"
-
 
 IFS="|"
 export QUESTIONFILE="questions.$uuid.txt"
@@ -46,25 +47,31 @@ for a in $ANSWERS; do
 done
 unset IFS
 
-echo "GOOGLE:"
+echo -e "$UWhite=============GOOGLE================$Color_Off"
 echo $ANSWERS \
     | tr "|" "\n" \
-    | xargs -P3 -I@ ./textfile_to_google.sh @ \
+    | xargs -P3 -I@ ./query_google.sh @ \
     | sort \
     | xargs -I@ grep -i @ --only-matching $ANSWERFILE \
     | sort \
     | uniq -c \
-    | sort -k1g
+    | sort -k1g \
+    | xargs -I@ echo -e $BCyan@$Color_Off
 
-    #| xargs -P3 -I @ python filterhit.py "@" $ANSWERS
-
-    
-
-echo "WIKI:"
+echo -e "$UWhite=============WIKIPEDIA==============$Color_Off"
 echo $ANSWERS \
     | tr "|" "\n" \
-    | xargs -P3 -I@ ./query_wikipedia.sh @ "$QUESTION" \
-    | xargs -I@  grep -i @ --only-matching $ANSWERFILE \
+    | xargs -P3 -I@ ./query_wikipedia.sh @ \
+    | xargs -0 -I@ grep -i @ --only-matching $QUESTIONFILE \
     | sort \
     | uniq -c \
-    | sort -k1g 	 
+    | sort -k1g \
+    | xargs -I@ echo -e $BYellow@$Color_Off
+
+echo -e "$UWhite============ Done. =================$Color_Off"
+read RETRY
+if [ "$RETRY" == "q" ]; then
+   exit
+fi
+
+./fetch_answers.sh @
