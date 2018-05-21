@@ -4,16 +4,18 @@ source urlencode.sh
 
 TMPQUESTION="tmp/"$uuid".question.wikipedia.txt"
 TMPANSWER="tmp/"$uuid".answer.wikipedia.txt"
-QUERYENC=$(urlencode "$1")
-echo "wikiepdia query:" $QUERYENC 1>&2
+QUERY="wikipedia $1"
 # Curl wikipedia API with the answer
-curl "https://en.wikipedia.org/w/api.php?action=opensearch&search=$QUERYENC&limit=1" -S 2> /dev/null |
+#QUERYENC=$(urlencode "$1")
+#echo "wikiepdia query:" $QUERY 1>&2
+#curl "https://en.wikipedia.org/w/api.php?action=opensearch&search=$QUERYENC&limit=1" -S 2> /dev/null |
+
+# Use googler to get the first wikipedia url
+googler --np -C -n 10 $QUERY 2> /dev/null |    
 #   | Get first http address from wikipedia\
     tr '"' "\n" \
-    | grep -P "^http.*" \
-    | head -n1 |
-#   | Query wikipedia with first url, convert to text\
-    xargs -I@ curl -sS @ \
+    | grep -P "^https://en.wikipedia*" \
+    | xargs -I@ curl -sS @ \
     | html2text |
 #   | \Extract words\
     tr " " "\n" |
@@ -35,3 +37,6 @@ curl "https://en.wikipedia.org/w/api.php?action=opensearch&search=$QUERYENC&limi
     grep -v "wiki" |
 #   | \Minimum word size\
     grep -P ".*.{3,}.*" 
+
+
+

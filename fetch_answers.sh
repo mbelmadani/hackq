@@ -1,6 +1,18 @@
 #!/bin/bash
 set -eu
+source utils.sh
 source colour_codes.sh
+
+function trim()
+{
+    local trimmed="$1"
+    # Strip leading space.
+    trimmed="${trimmed## }"
+    # Strip trailing space.
+    trimmed="${trimmed%% }"
+
+    echo "$trimmed"
+}
 
 echo "=======================NEW QUESTION==========================="
 
@@ -28,10 +40,12 @@ TEXT=$(cat $PARSEDTEXT".txt" \
 	      | tr "\n" "|" \
 	      | sed '/^\s*$/d' \
 	      | sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/|/g' \
-              | tr '[:upper:]' '[:lower:]' )
+              | tr '[:upper:]' '[:lower:]' \
+	      | tr "|" "\n" )
 
-export ANSWERS=$(echo $TEXT | cut --complement -f1 -d"?" )
-export QUESTION=$(echo $TEXT | sed -e "s|?.*|?|g" | sed 's/|//g' | sed "s/^|//g")
+echo "TEXT: $TEXT"
+export ANSWERS=$(echo $TEXT | cut --complement -f1 -d"?" | tr "|" "\n" )
+export QUESTION=$(echo $TEXT | sed -e "s|?.*|?|g" | tr "|" " " |  sed 's/|//g' | sed "s/^|//g")
 echo "QUESTION $QUESTION"
 echo "ANSWERS $ANSWERS"
 
@@ -50,7 +64,7 @@ unset IFS
 echo -e "$UWhite=============GOOGLE================$Color_Off"
 echo $ANSWERS \
     | tr "|" "\n" \
-    | xargs -P3 -I@ ./query_google.sh @ \
+    | xargs -P3 -I@ ./query_google.sh "$QUESTION @" \
     | sort \
     | xargs -I@ grep -i @ --only-matching $ANSWERFILE \
     | sort \
@@ -59,19 +73,19 @@ echo $ANSWERS \
     | xargs -I@ echo -e $BCyan@$Color_Off
 
 echo -e "$UWhite=============WIKIPEDIA==============$Color_Off"
-echo $ANSWERS \
-    | tr "|" "\n" \
+echo $QUESTION \
+    | tr "\?" "\n" \
     | xargs -P3 -I@ ./query_wikipedia.sh @ \
-    | xargs -0 -I@ grep -i @ --only-matching $QUESTIONFILE \
+    | xargs -0 -I@ grep -i @ --only-matching $ANSWERFILE \
     | sort \
     | uniq -c \
     | sort -k1g \
     | xargs -I@ echo -e $BYellow@$Color_Off
-
 echo -e "$UWhite============ Done. =================$Color_Off"
+
 read RETRY
 if [ "$RETRY" == "q" ]; then
    exit
 fi
 
-./fetch_answers.sh @
+
