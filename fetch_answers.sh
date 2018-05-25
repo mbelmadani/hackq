@@ -45,7 +45,7 @@ TEXT=$(cat $PARSEDTEXT".txt" \
 
 echo "TEXT: $TEXT"
 export ANSWERS=$(echo $TEXT | cut --complement -f1 -d"?" | tr "|" "\n" )
-export QUESTION=$(echo $TEXT | sed -e "s|?.*|?|g" | tr "|" " " |  sed 's/|//g' | sed "s/^|//g")
+export QUESTION=$(echo $TEXT | sed -e "s|?.*|?|g" | tr "|" " " |  sed 's/|//g' | sed "sv/^|//g")
 echo "QUESTION $QUESTION"
 echo "ANSWERS $ANSWERS"
 
@@ -82,10 +82,11 @@ echo $QUESTION \
     | sort -k1g \
     | xargs -I@ echo -e $BYellow@$Color_Off
 echo -e "$UWhite============ Done. =================$Color_Off"
-
+echo -e "$UWhite Enter (q + ENTER) to quit, and (ENTER) to rerun. $Color_Off"
 read RETRY
 if [ "$RETRY" == "q" ]; then
    exit
 fi
 
+./$0 $@
 
