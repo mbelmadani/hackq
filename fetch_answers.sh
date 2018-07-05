@@ -40,33 +40,34 @@ TEXT=$(cat $PARSEDTEXT".txt" \
 	      | tr "\n" "|" \
 	      | sed '/^\s*$/d' \
 	      | sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/|/g' \
-              | tr '[:upper:]' '[:lower:]' \
-	      | tr "|" "\n" )
+              | tr '[:upper:]' '[:lower:]'  )
 
 echo "TEXT: $TEXT"
-export ANSWERS=$(echo $TEXT | cut --complement -f1 -d"?" | tr "|" "\n" )
-export QUESTION=$(echo $TEXT | sed -e "s|?.*|?|g" | tr "|" " " |  sed 's/|//g' | sed "sv/^|//g")
-echo "QUESTION $QUESTION"
-echo "ANSWERS $ANSWERS"
+export ANSWERS=$(echo $TEXT \
+			| cut --complement -f1 -d"?" \
+			| cut --complement -f1 -d"|" \
+			| tr "|" "\n"  )
+export QUESTION=$(echo $TEXT | tr "|" "\n" | sed -e "s|?.*|?|g" | tr "|" " " |  sed 's/|//g' | sed "s/^|//g")
 
-IFS="|"
+echo -e "QUESTION $QUESTION"
+echo -e "ANSWERS $ANSWERS"
+
 export QUESTIONFILE="questions.$uuid.txt"
 echo $QUESTION > $QUESTIONFILE
-
 export ANSWERFILE="answers.$uuid.txt"
 rm -f $ANSWERFILE
 for a in $ANSWERS; do
     # Saving this for analysis
     echo $a >> $ANSWERFILE
 done
-unset IFS
+
 
 echo -e "$UWhite=============GOOGLE================$Color_Off"
 echo $ANSWERS \
     | tr "|" "\n" \
     | xargs -P3 -I@ ./query_google.sh "$QUESTION @" \
     | sort \
-    | xargs -I@ grep -i @ --only-matching $ANSWERFILE \
+    | xargs -I@ fgrep -i "@" --only-matching $ANSWERFILE \
     | sort \
     | uniq -c \
     | sort -k1g \
@@ -75,8 +76,8 @@ echo $ANSWERS \
 echo -e "$UWhite=============WIKIPEDIA==============$Color_Off"
 echo $QUESTION \
     | tr "\?" "\n" \
-    | xargs -P3 -I@ ./query_wikipedia.sh @ \
-    | xargs -0 -I@ grep -i @ --only-matching $ANSWERFILE \
+    | xargs -P3 -I@ ./query_wikipedia.sh "@" \
+    | xargs -0 -I@ fgrep -i "@" --only-matching $PARSEDTEXT".txt" \
     | sort \
     | uniq -c \
     | sort -k1g \

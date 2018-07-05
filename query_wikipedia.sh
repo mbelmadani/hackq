@@ -7,7 +7,6 @@ TMPANSWER="tmp/"$uuid".answer.wikipedia.txt"
 QUERY="wikipedia $1"
 # Curl wikipedia API with the answer
 #QUERYENC=$(urlencode "$1")
-#echo "wikiepdia query:" $QUERY 1>&2
 #curl "https://en.wikipedia.org/w/api.php?action=opensearch&search=$QUERYENC&limit=1" -S 2> /dev/null |
 
 # Use googler to get the first wikipedia url
@@ -16,7 +15,7 @@ googler --np -C -n 10 $QUERY 2> /dev/null |
     tr '"' "\n" \
     | grep -P "^https://en.wikipedia*" \
     | xargs -I@ curl -sS @ \
-    | html2text |
+    | html2text -nometa |
 #   | \Extract words\
     tr " " "\n" |
 #   | \Convert non-word characters to breaks\	  
